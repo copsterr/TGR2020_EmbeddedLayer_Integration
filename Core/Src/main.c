@@ -28,6 +28,7 @@
 /* USER CODE BEGIN Includes */
 #include "stm32_seq.h"
 #include "iks01a2_motion_sensors.h"
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -37,11 +38,13 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define STILL_TIMEOUT 10
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+uint8_t is_moving(int32_t* x, int32_t* y, int32_t* z);
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -55,6 +58,37 @@ UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 IKS01A2_MOTION_SENSOR_Axes_t accelero_val = {0, 0, 0};
+
+typedef enum {
+	NORMAL = 0x00,
+	UNCONCIOUS,
+  FALL,
+	TEST_STATE = 0x44
+} motion_state_t;
+
+typedef enum {
+	OK = 0x00,
+	MAYBE_DEAD = 0x0008,
+	MAN_DOWN = 0x0080,
+	TRIP_TO_HEAVEN = 0xFF,
+	TEST_STATUS = 0x44
+} code_status;
+
+
+volatile uint8_t still_timeout_count = 0;
+motion_state_t state = NORMAL;
+code_status motion_status = OK;
+
+volatile uint8_t moving = 0;
+
+volatile int32_t old_axe_x = 0;
+volatile int32_t old_axe_y = 0;
+volatile int32_t old_axe_z = 0;
+
+// prompt
+uint8_t prompt_moving[] = "I like to move it!\r\n";
+uint8_t prompt_dead[] = "Maybe I'm dead bro.\r\n";
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -117,6 +151,9 @@ int main(void)
 
   MX_MEMS_Init();
 
+  // start timer16
+  HAL_TIM_Base_Start_IT(&htim16);
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -124,8 +161,32 @@ int main(void)
     UTIL_SEQ_Run(UTIL_SEQ_DEFAULT);
     /* USER CODE END WHILE */
 
-  MX_MEMS_Process();
+    MX_MEMS_Process();
     /* USER CODE BEGIN 3 */
+
+
+    /* STATE SWITCHING ------------------------------------------------------ */
+    switch (state)
+    {
+    case NORMAL:
+      HAL_UART_Transmit(&huart1, (uint8_t*) prompt_moving, strlen(prompt_moving), 1000);
+
+      if (still_timeout_count == 10) {
+    	motion_status = MAYBE_DEAD;
+        state = UNCONCIOUS;
+      }
+
+
+      break;
+    
+    case UNCONCIOUS:
+        HAL_UART_Transmit(&huart1, (uint8_t*) prompt_dead, strlen(prompt_dead), 1000);
+      break;
+    
+    default:
+      break;
+    }
+
   }
   /* USER CODE END 3 */
 }
@@ -418,6 +479,56 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+/* ISR ---------------------------------------------------------------------- */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) 
+{
+  if (htim == &htim16) {
+    
+    if (!is_moving(&old_axe_x, &old_axe_y, &old_axe_z)) {
+      still_timeout_count++;
+    } else {
+      still_timeout_count = 0;
+    }
+
+    old_axe_x = accelero_val.x;
+    old_axe_y = accelero_val.y;
+    old_axe_z = accelero_val.z;
+
+  }
+
+
+  else if (htim == &htim17) {
+    if (old_axe_z - accelero_val.z > 500) {
+
+    }
+
+  }
+}
+
+
+/* USER DEFINED ------------------------------------------------------------- */
+code_status is_moving(int32_t* x, int32_t* y, int32_t* z)
+{
+  uint8_t is_really_moving = 0;
+
+  if (accelero_val.x - *x > 20 || accelero_val.x - *x < -20) {
+    is_really_moving = 1;
+  }
+  else if (accelero_val.y - *y > 20 || accelero_val.y - *y < -20) {
+    is_really_moving = 1;
+  }
+  else if (accelero_val.z - *z > 20 || accelero_val.z - *z < -20) {
+    is_really_moving = 1;
+  }
+
+  if (is_really_moving) {
+    motion_status = OK;
+    return 1;
+  }
+
+  return 0;
+}
 
 /* USER CODE END 4 */
 
