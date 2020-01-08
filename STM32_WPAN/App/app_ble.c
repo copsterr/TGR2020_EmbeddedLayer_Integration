@@ -34,6 +34,7 @@
 #include "stm32_lpm.h"
 #include "otp.h"
 #include "p2p_server_app.h"
+#include "template_server_app.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -244,7 +245,7 @@ uint8_t manuf_data[14] = {
     0x01/*SKD version */,
     CFG_DEV_ID_P2P_SERVER1 /* STM32WB - P2P Server 1*/,
     0x00 /* GROUP A Feature  */, 
-    0x00 /* GROUP A Feature */,
+    0x04 /* GROUP A Feature */,
     0x00 /* GROUP B Feature */,
     0x00 /* GROUP B Feature */,
     0x00, /* BLE MAC start -MSB */
@@ -462,6 +463,12 @@ void APP_BLE_Init( void )
    * Initialize P2P Server Application
    */
   P2PS_APP_Init();
+
+  /**
+   * Initialize Custom Server Application
+   */
+  TEMPLATE_APP_Init();
+  
 
   /**
    * Create timer to handle the Advertising Stop
