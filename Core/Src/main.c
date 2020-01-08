@@ -63,6 +63,7 @@ typedef enum {
 	NORMAL = 0x00,
 	UNCONCIOUS,
   FALL,
+  FLY,
 	TEST_STATE = 0x44
 } motion_state_t;
 
@@ -70,6 +71,7 @@ typedef enum {
 	OK = 0x00,
 	MAYBE_DEAD = 0x0008,
 	MAN_DOWN = 0x0080,
+	MAN_FLY = 0x0081,
 	TRIP_TO_HEAVEN = 0xFF,
 	TEST_STATUS = 0x44
 } code_status;
@@ -77,17 +79,22 @@ typedef enum {
 
 volatile uint8_t still_timeout_count = 0;
 motion_state_t state = NORMAL;
-code_status motion_status = OK;
+volatile code_status motion_status = OK;
 
 volatile uint8_t moving = 0;
 
 volatile int32_t old_axe_x = 0;
 volatile int32_t old_axe_y = 0;
 volatile int32_t old_axe_z = 0;
+volatile int32_t axe_z_diff = 0;
+
+uint8_t run_this_once = 1;
 
 // prompt
 uint8_t prompt_moving[] = "I like to move it!\r\n";
 uint8_t prompt_dead[] = "Maybe I'm dead bro.\r\n";
+uint8_t prompt_fall[] = "Goodbye, I'm fall.\r\n";
+uint8_t prompt_up[] = "I believe I can fly.\r\n";
 
 /* USER CODE END PV */
 
@@ -152,7 +159,8 @@ int main(void)
   MX_MEMS_Init();
 
   // start timer16
-  HAL_TIM_Base_Start_IT(&htim16);
+  // HAL_TIM_Base_Start_IT(&htim16);
+  // HAL_TIM_Base_Start_IT(&htim17);
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -163,6 +171,12 @@ int main(void)
 
     MX_MEMS_Process();
     /* USER CODE BEGIN 3 */
+
+    if (run_this_once) {
+      HAL_TIM_Base_Start_IT(&htim16);
+      HAL_TIM_Base_Start_IT(&htim17);
+      run_this_once = 0;
+    }
 
 
     /* STATE SWITCHING ------------------------------------------------------ */
@@ -176,13 +190,27 @@ int main(void)
         state = UNCONCIOUS;
       }
 
+      if (motion_status == MAN_DOWN) {
+        state = FLY;
+      }
+      else if (motion_status == MAN_FLY) {
+        state = FALL;
+      }
 
       break;
     
     case UNCONCIOUS:
-        HAL_UART_Transmit(&huart1, (uint8_t*) prompt_dead, strlen(prompt_dead), 1000);
+      HAL_UART_Transmit(&huart1, (uint8_t*) prompt_dead, strlen(prompt_dead), 1000);
+      break;
+
+    case FALL:
+      HAL_UART_Transmit(&huart1, (uint8_t*) prompt_fall, strlen(prompt_fall), 1000);
       break;
     
+    case FLY:
+      HAL_UART_Transmit(&huart1, (uint8_t*) prompt_up, strlen(prompt_up), 1000);
+      break;
+
     default:
       break;
     }
@@ -499,8 +527,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 
   else if (htim == &htim17) {
-    if (old_axe_z - accelero_val.z > 500) {
-
+	axe_z_diff = accelero_val.z - old_axe_z;
+    if (axe_z_diff > 700) {
+      motion_status = MAN_DOWN;
+    }
+    else if (axe_z_diff < -700) {
+      motion_status = MAN_FLY;
     }
 
   }
