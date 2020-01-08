@@ -51,3 +51,5 @@
 "STM32_WPAN/App/app_ble.o"
 "STM32_WPAN/App/p2p_server_app.o"
 "STM32_WPAN/Target/hw_ipcc.o"
+"Utilities/lpm/tiny_lpm/stm32_lpm.o"
+"Utilities/sequencer/stm32_seq.o"

@@ -27,4 +27,6 @@ Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/tl \
 Middlewares/ST/STM32_WPAN/utilities \
 STM32_WPAN/App \
 STM32_WPAN/Target \
+Utilities/lpm/tiny_lpm \
+Utilities/sequencer \
 
