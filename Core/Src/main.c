@@ -64,6 +64,7 @@ typedef enum {
 	UNCONCIOUS,
   FALL,
   FLY,
+  TRIP,
 	TEST_STATE = 0x44
 } motion_state_t;
 
@@ -86,7 +87,11 @@ volatile uint8_t moving = 0;
 volatile int32_t old_axe_x = 0;
 volatile int32_t old_axe_y = 0;
 volatile int32_t old_axe_z = 0;
+
+// diff axe
 volatile int32_t axe_z_diff = 0;
+volatile int32_t axe_x_diff = 0;
+volatile int32_t axe_y_diff = 0;
 
 uint8_t run_this_once = 1;
 
@@ -95,6 +100,7 @@ uint8_t prompt_moving[] = "I like to move it!\r\n";
 uint8_t prompt_dead[] = "Maybe I'm dead bro.\r\n";
 uint8_t prompt_fall[] = "Goodbye, I'm fall.\r\n";
 uint8_t prompt_up[] = "I believe I can fly.\r\n";
+uint8_t prompt_trip[] = "Dang I tripped.\r\n";
 
 /* USER CODE END PV */
 
@@ -205,6 +211,21 @@ int main(void)
 
     case FALL:
       HAL_UART_Transmit(&huart1, (uint8_t*) prompt_fall, strlen(prompt_fall), 1000);
+
+      axe_x_diff = accelero_val.x - old_axe_x;
+      axe_y_diff = accelero_val.y - old_axe_y;
+
+      if (axe_x_diff > 700 || axe_x_diff < -700 || axe_y_diff > 700 || axe_y_diff < -700) {
+        motion_status = TRIP_TO_HEAVEN; 
+        HAL_UART_Transmit(&huart1, (uint8_t*) prompt_trip, strlen(prompt_trip), 1000);
+        
+        HAL_TIM_Base_Stop_IT(&htim16);
+        HAL_TIM_Base_Stop_IT(&htim17);
+
+        while(1);
+      }
+
+
       break;
     
     case FLY:
@@ -527,15 +548,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 
   else if (htim == &htim17) {
-	axe_z_diff = accelero_val.z - old_axe_z;
+    axe_z_diff = accelero_val.z - old_axe_z;
     if (axe_z_diff > 700) {
       motion_status = MAN_DOWN;
     }
     else if (axe_z_diff < -700) {
       motion_status = MAN_FLY;
     }
-
   }
+
 }
 
 
