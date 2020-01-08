@@ -18,7 +18,13 @@ RM := rm -rf
 -include Middlewares/ST/STM32_WPAN/ble/svc/Src/subdir.mk
 -include Middlewares/ST/STM32_WPAN/ble/core/template/subdir.mk
 -include Middlewares/ST/STM32_WPAN/ble/core/auto/subdir.mk
+-include MEMS/App/subdir.mk
 -include Drivers/STM32WBxx_HAL_Driver/Src/subdir.mk
+-include Drivers/BSP/IKS01A2/subdir.mk
+-include Drivers/BSP/Components/lsm6dsl/subdir.mk
+-include Drivers/BSP/Components/lsm303agr/subdir.mk
+-include Drivers/BSP/Components/lps22hb/subdir.mk
+-include Drivers/BSP/Components/hts221/subdir.mk
 -include Core/Startup/subdir.mk
 -include Core/Src/subdir.mk
 -include subdir.mk
