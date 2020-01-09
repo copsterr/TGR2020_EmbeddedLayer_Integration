@@ -26,6 +26,11 @@
 #include "template_server_app.h"
 #include "stm32_seq.h"
 
+#include "main.h"
+
+extern motion_state_t state;
+extern motion_state_t old_state;
+
 /* Private typedef -----------------------------------------------------------*/
 typedef struct
 {
@@ -68,7 +73,7 @@ static void TEMPLATE_Send_Notification_Task(void);
 
 static void TEMPLATE_UpdateParameter_Timer_Callback(void)
 {
-UTIL_SEQ_SetTask( 1<<CFG_IdleTask_Update_Temperature, CFG_SCH_PRIO_0);
+// UTIL_SEQ_SetTask( 1<<CFG_IdleTask_Update_Temperature, CFG_SCH_PRIO_0);
 }
 
 /* Public functions ----------------------------------------------------------*/
@@ -84,7 +89,7 @@ void TEMPLATE_STM_App_Notification(TEMPLATE_STM_App_Notification_evt_t *pNotific
 #endif
 
 /* Start the timer used to update the characteristic */
-HW_TS_Start(TEMPLATE_Server_App_Context.UpdateParameter_timer_Id, PARAMETER_UPDATE_PERIOD);
+// HW_TS_Start(TEMPLATE_Server_App_Context.UpdateParameter_timer_Id, PARAMETER_UPDATE_PERIOD);
 
       break; /* TEMPLATE_STM_NOTIFY_ENABLED_EVT */
 
@@ -95,7 +100,7 @@ HW_TS_Start(TEMPLATE_Server_App_Context.UpdateParameter_timer_Id, PARAMETER_UPDA
       APP_DBG_MSG(" \n\r");
 #endif
       /* Stop the timer used to update the characteristic */
-      HW_TS_Stop(TEMPLATE_Server_App_Context.UpdateParameter_timer_Id);
+      // HW_TS_Stop(TEMPLATE_Server_App_Context.UpdateParameter_timer_Id);
       break; /* TEMPLATE_STM_NOTIFY_DISABLED_EVT */
       
     case TEMPLATE_STM_WRITE_EVT:
@@ -164,20 +169,43 @@ static void TEMPLATE_APP_context_Init(void)
 
 static void TEMPLATE_Send_Notification_Task(void)
 {
-  uint8_t value[4];
-  value[0] = (uint8_t)(TEMPLATE_Server_App_Context.Parameter.TimeStamp & 0x00FF);
-  value[1] = (uint8_t)(TEMPLATE_Server_App_Context.Parameter.TimeStamp >> 8);
-  value[2] = (uint8_t)(TEMPLATE_Server_App_Context.Parameter.Temperature & 0x00FF);
-  value[3] = (uint8_t)(TEMPLATE_Server_App_Context.Parameter.Temperature >> 8);
-  TEMPLATE_Server_App_Context.Parameter.Temperature += TEMPLATE_Server_App_Context.UpdateParameterStep;
-  TEMPLATE_Server_App_Context.Parameter.TimeStamp += PARAMETER_CHANGE_STEP;
-  if (TEMPLATE_Server_App_Context.Parameter.Temperature > PARAMETER_VALUE_MAX_THRESHOLD) {
-    TEMPLATE_Server_App_Context.UpdateParameterStep = -PARAMETER_CHANGE_STEP;
-  }
-  else if (TEMPLATE_Server_App_Context.Parameter.Temperature < PARAMETER_VALUE_MIN_THRESHOLD)
+  uint8_t value[4] = {0};
+
+  value[0] = (uint8_t) (0x00);
+  value[1] = (uint8_t) (0x00);
+  // value[0] = (uint8_t)(TEMPLATE_Server_App_Context.Parameter.TimeStamp & 0x00FF);
+  // value[1] = (uint8_t)(TEMPLATE_Server_App_Context.Parameter.TimeStamp >> 8);
+  // value[2] = (uint8_t)(TEMPLATE_Server_App_Context.Parameter.Temperature & 0x00FF);
+  // value[3] = (uint8_t)(TEMPLATE_Server_App_Context.Parameter.Temperature >> 8);
+
+  switch (state)
   {
-    TEMPLATE_Server_App_Context.UpdateParameterStep = +PARAMETER_CHANGE_STEP;
+  case UNCONCIOUS:
+    value[2] = (uint8_t) (0x00);
+    value[3] = (uint8_t) (0x08);
+    //HAL_UART_Transmit(&huart1, (uint8_t*) "Send DEAD\r\n", 11, 100);
+    break;
+  
+  case FALL:
+    value[2] = (uint8_t) (0x00);
+    value[3] = (uint8_t) (0x80);
+    //HAL_UART_Transmit(&huart1, (uint8_t*) "Send FALL\r\n", 11, 100);
+    break;
+
+  default:
+    break;
   }
+
+  old_state = state;
+  // TEMPLATE_Server_App_Context.Parameter.Temperature += TEMPLATE_Server_App_Context.UpdateParameterStep;
+  // TEMPLATE_Server_App_Context.Parameter.TimeStamp += PARAMETER_CHANGE_STEP;
+  // if (TEMPLATE_Server_App_Context.Parameter.Temperature > PARAMETER_VALUE_MAX_THRESHOLD) {
+  //   TEMPLATE_Server_App_Context.UpdateParameterStep = -PARAMETER_CHANGE_STEP;
+  // }
+  // else if (TEMPLATE_Server_App_Context.Parameter.Temperature < PARAMETER_VALUE_MIN_THRESHOLD)
+  // {
+  //   TEMPLATE_Server_App_Context.UpdateParameterStep = +PARAMETER_CHANGE_STEP;
+  // }
 
   if(TEMPLATE_Server_App_Context.NotificationStatus)
   {

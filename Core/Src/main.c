@@ -38,7 +38,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define STILL_TIMEOUT 10
+#define STILL_TIMEOUT 5
 
 /* USER CODE END PD */
 
@@ -59,27 +59,10 @@ UART_HandleTypeDef huart1;
 /* USER CODE BEGIN PV */
 IKS01A2_MOTION_SENSOR_Axes_t accelero_val = {0, 0, 0};
 
-typedef enum {
-	NORMAL = 0x00,
-	UNCONCIOUS,
-  FALL,
-  FLY,
-  TRIP,
-	TEST_STATE = 0x44
-} motion_state_t;
-
-typedef enum {
-	OK = 0x00,
-	MAYBE_DEAD = 0x0008,
-	MAN_DOWN = 0x0080,
-	MAN_FLY = 0x0081,
-	TRIP_TO_HEAVEN = 0x00FF,
-	TEST_STATUS = 0x44
-} code_status;
-
 
 volatile uint8_t still_timeout_count = 0;
 motion_state_t state = NORMAL;
+motion_state_t old_state = TEST_STATE;
 volatile code_status motion_status = OK;
 
 volatile uint8_t moving = 0;
@@ -188,16 +171,22 @@ int main(void)
     case NORMAL:
       HAL_UART_Transmit(&huart1, (uint8_t*) prompt_moving, strlen(prompt_moving), 1000);
 
-      if (still_timeout_count == 10) {
-        motion_status = MAYBE_DEAD;
+      if (still_timeout_count == STILL_TIMEOUT) {
+        // send noti that the person is dead
+    	  // UTIL_SEQ_SetTask(1<<CFG_TASK_SW1_BUTTON_PUSHED_ID, CFG_SCH_PRIO_0);
+
+        // send noti when person die
         state = UNCONCIOUS;
+        motion_status = MAYBE_DEAD;
+        UTIL_SEQ_SetTask(1<<CFG_IdleTask_Update_Temperature, CFG_SCH_PRIO_0);
       }
 
-      if (motion_status == MAN_DOWN) {
-        state = FALL;
-      }
+      // if (motion_status == MAN_DOWN) {
+      //   state = FALL;
+      // }
       else if (motion_status == MAN_FLY) {
         state = FALL;
+        UTIL_SEQ_SetTask(1<<CFG_IdleTask_Update_Temperature, CFG_SCH_PRIO_0);
       }
 
       break;
@@ -224,9 +213,10 @@ int main(void)
       }
 
       // Damn I'm dead.
-      if (still_timeout_count == 10) {
-        motion_status = MAYBE_DEAD;
+      if (still_timeout_count == STILL_TIMEOUT) {
         state = UNCONCIOUS;
+    	  UTIL_SEQ_SetTask(1<<CFG_IdleTask_Update_Temperature, CFG_SCH_PRIO_0);
+        motion_status = MAYBE_DEAD; 
       }
 
       // shit I'm alive

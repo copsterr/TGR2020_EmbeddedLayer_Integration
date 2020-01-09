@@ -99,7 +99,7 @@ STM32_WPAN/App/template_server_app.o: \
  ../Middlewares/ST/STM32_WPAN/ble/svc/Inc/svc_ctl.h \
  ../Middlewares/ST/STM32_WPAN/ble/svc/Inc/uuid.h \
  ../STM32_WPAN/App/template_server_app.h \
- ../Utilities/sequencer/stm32_seq.h
+ ../Utilities/sequencer/stm32_seq.h ../Core/Inc/main.h
 
 ../Core/Inc/app_common.h:
 
@@ -308,3 +308,5 @@ STM32_WPAN/App/template_server_app.o: \
 ../STM32_WPAN/App/template_server_app.h:
 
 ../Utilities/sequencer/stm32_seq.h:
+
+../Core/Inc/main.h:
