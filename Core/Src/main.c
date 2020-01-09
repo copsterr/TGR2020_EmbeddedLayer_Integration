@@ -172,9 +172,6 @@ int main(void)
       HAL_UART_Transmit(&huart1, (uint8_t*) prompt_moving, strlen(prompt_moving), 1000);
 
       if (still_timeout_count == STILL_TIMEOUT) {
-        // send noti that the person is dead
-    	  // UTIL_SEQ_SetTask(1<<CFG_TASK_SW1_BUTTON_PUSHED_ID, CFG_SCH_PRIO_0);
-
         // send noti when person die
         state = UNCONCIOUS;
         motion_status = MAYBE_DEAD;
@@ -194,8 +191,15 @@ int main(void)
     case UNCONCIOUS:
       HAL_UART_Transmit(&huart1, (uint8_t*) prompt_dead, strlen(prompt_dead), 1000);
 
+      // LED Feedback
+      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET); // RED LED feedback
+      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET); // BLUE LED feedback
+
       still_timeout_count = 0;
       if (motion_status == OK) {
+        // RED LED feedback
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
+
         state = NORMAL;
         UTIL_SEQ_SetTask(1<<CFG_IdleTask_Update_Temperature, CFG_SCH_PRIO_0);
       }
@@ -204,6 +208,9 @@ int main(void)
 
     case FALL:
       HAL_UART_Transmit(&huart1, (uint8_t*) prompt_fall, strlen(prompt_fall), 1000);
+
+      // BLUE LED feedback
+      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
 
       axe_x_diff = accelero_val.x - old_axe_x;
       axe_y_diff = accelero_val.y - old_axe_y;
@@ -215,6 +222,9 @@ int main(void)
 
       // Damn I'm dead.
       if (still_timeout_count == STILL_TIMEOUT) {
+        // BLUE LED feedback
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET); // turn off Blue LED
+
         state = UNCONCIOUS;
     	  UTIL_SEQ_SetTask(1<<CFG_IdleTask_Update_Temperature, CFG_SCH_PRIO_0);
         motion_status = MAYBE_DEAD; 
@@ -222,6 +232,9 @@ int main(void)
 
       // shit I'm alive
       if (motion_status == MAN_FLY) {
+        // BLUE LED feedback
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);
+        
         state = NORMAL;
         still_timeout_count = 0;
         trip_period = 0;
