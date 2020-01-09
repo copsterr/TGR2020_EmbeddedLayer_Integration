@@ -33,12 +33,28 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct{
+  uint8_t Device_Led_Selection;
+  uint8_t Led1;
+}P2P_LedCharValue_t;
 
+typedef struct{
+  uint8_t Device_Button_Selection;
+  uint8_t ButtonStatus;
+}P2P_ButtonCharValue_t;
+
+typedef struct
+{
+  uint8_t Notification_Status; /* used to check if P2P Server is enabled to Notify */
+  P2P_LedCharValue_t LedControl;
+  P2P_ButtonCharValue_t ButtonControl;
+  uint16_t ConnectionHandle;
+} P2P_Server_App_Context_t;
 /* USER CODE END PTD */
 
 /* Private defines ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+static void P2PS_Send_Notification(void);
 /* USER CODE END PD */
 
 /* Private macros -------------------------------------------------------------*/
@@ -48,7 +64,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-
+PLACE_IN_SECTION("BLE_APP_CONTEXT") static P2P_Server_App_Context_t P2P_Server_App_Context;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -135,13 +151,28 @@ void P2PS_APP_Notification(P2PS_APP_ConnHandle_Not_evt_t *pNotification)
 void P2PS_APP_Init(void)
 {
 /* USER CODE BEGIN P2PS_APP_Init */
-
+UTIL_SEQ_RegTask( 1<< CFG_TASK_SW1_BUTTON_PUSHED_ID, UTIL_SEQ_RFU, P2PS_Send_Notification );
 /* USER CODE END P2PS_APP_Init */
   return;
 }
 
 /* USER CODE BEGIN FD */
-
+static void P2PS_Send_Notification(void)
+{
+if(P2P_Server_App_Context.ButtonControl.ButtonStatus == 0x00){
+  P2P_Server_App_Context.ButtonControl.ButtonStatus=0x01;
+} else {
+  P2P_Server_App_Context.ButtonControl.ButtonStatus=0x00;
+}
+if(P2P_Server_App_Context.Notification_Status){
+  APP_DBG_MSG("-- P2P APPLICATION SERVER : INFORM CLIENT BUTTON 1 PUSHED \n ");
+  APP_DBG_MSG(" \n\r");
+  P2PS_STM_App_Update_Char(P2P_NOTIFY_CHAR_UUID, (uint8_t *)&P2P_Server_App_Context.ButtonControl);
+} else {
+  APP_DBG_MSG("-- P2P APPLICATION SERVER : CAN'T INFORM CLIENT - NOTIFICATION DISABLED\n ");
+}
+return;
+}
 /* USER CODE END FD */
 
 /*************************************************************

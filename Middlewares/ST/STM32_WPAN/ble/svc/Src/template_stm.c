@@ -84,9 +84,9 @@ do {\
  D973F2E1-B19E-11E2-9E96-0800200C9A66: Characteristic_1 128bits UUID
  D973F2E2-B19E-11E2-9E96-0800200C9A66: Characteristic_2 128bits UUID
  */
-#define COPY_TEMPLATE_SERVICE_UUID(uuid_struct)       COPY_UUID_128(uuid_struct,0x00,0x00,0xAA,0xBB,0xcc,0x7a,0x48,0x2a,0x98,0x4a,0x7f,0x2e,0xd5,0xb3,0xe5,0x8f)
+#define COPY_TEMPLATE_SERVICE_UUID(uuid_struct)       COPY_UUID_128(uuid_struct,0x00,0x00,0x00,0x00,0x00,0x01,0x11,0xE1,0x9A,0xB4,0x00,0x02,0xA5,0xD5,0xC5,0x1B)
 #define COPY_TEMPLATE_WRITE_CHAR_UUID(uuid_struct)    COPY_UUID_128(uuid_struct,0x00,0x00,0xAA,0xCC,0x8e,0x22,0x45,0x41,0x9d,0x4c,0x21,0xed,0xae,0x82,0xed,0x19)
-#define COPY_TEMPLATE_NOTIFY_UUID(uuid_struct)        COPY_UUID_128(uuid_struct,0x00,0x00,0xAA,0xDD,0x8e,0x22,0x45,0x41,0x9d,0x4c,0x21,0xed,0xae,0x82,0xed,0x19)
+#define COPY_TEMPLATE_NOTIFY_UUID(uuid_struct)        COPY_UUID_128(uuid_struct,0x00,0x04,0x00,0x00,0x00,0x01,0x11,0xE1,0xAC,0x36,0x00,0x02,0xA5,0xD5,0xC5,0x1B)
 
 
 
@@ -226,7 +226,7 @@ void SVCCTL_InitCustomSvc(void)
     COPY_TEMPLATE_NOTIFY_UUID(uuid16.Char_UUID_128);
     aci_gatt_add_char(aTemplateContext.TemplateSvcHdle,
                       UUID_TYPE_128, &uuid16,
-                      2,
+                      4,
                       CHAR_PROP_NOTIFY,
                       ATTR_PERMISSION_NONE,
                       GATT_NOTIFY_ATTRIBUTE_WRITE, /* gattEvtMask */
@@ -268,7 +268,7 @@ tBleStatus TEMPLATE_STM_App_Update_Char(uint16_t UUID, uint8_t *pPayload)
      result = aci_gatt_update_char_value(aTemplateContext.TemplateSvcHdle,
                              aTemplateContext.TemplateNotifyServerToClientCharHdle,
                               0, /* charValOffset */
-                             2, /* charValueLen */
+                             4, /* charValueLen */
                              (uint8_t *)  pPayload);
     
       break;

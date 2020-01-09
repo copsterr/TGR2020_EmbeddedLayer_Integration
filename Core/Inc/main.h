@@ -47,7 +47,23 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
+typedef enum {
+	NORMAL = 0x00,
+	UNCONCIOUS,
+  FALL,
+  FLY,
+  TRIP,
+	TEST_STATE = 0x44
+} motion_state_t;
 
+typedef enum {
+	OK = 0x00,
+	MAYBE_DEAD = 0x0008,
+	MAN_DOWN = 0x0080,
+	MAN_FLY = 0x0081,
+	TRIP_TO_HEAVEN = 0x00FF,
+	TEST_STATUS = 0x44
+} code_status;
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/

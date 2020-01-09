@@ -245,7 +245,7 @@ uint8_t manuf_data[14] = {
     0x01/*SKD version */,
     CFG_DEV_ID_P2P_SERVER1 /* STM32WB - P2P Server 1*/,
     0x00 /* GROUP A Feature  */, 
-    0x00 /* GROUP A Feature */,
+    0x04 /* GROUP A Feature */,
     0x00 /* GROUP B Feature */,
     0x00 /* GROUP B Feature */,
     0x00, /* BLE MAC start -MSB */
@@ -686,7 +686,18 @@ APP_BLE_ConnStatus_t APP_BLE_Get_Server_Connection_Status(void)
 }
 
 /* USER CODE BEGIN FD*/
-
+void HAL_GPIO_EXTI_Callback( uint16_t GPIO_Pin )
+{
+  switch (GPIO_Pin)
+  {
+    case GPIO_PIN_4:
+      UTIL_SEQ_SetTask(1<<CFG_TASK_SW1_BUTTON_PUSHED_ID, CFG_SCH_PRIO_0);
+      break;
+    default:
+      break;
+  }
+  return;
+}
 /* USER CODE END FD*/
 /*************************************************************
  *
