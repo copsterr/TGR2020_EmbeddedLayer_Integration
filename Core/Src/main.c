@@ -537,6 +537,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     
     if (!is_moving(&old_axe_x, &old_axe_y, &old_axe_z)) {
       still_timeout_count++;
+
+      if (state == FALL) {
+    	  UTIL_SEQ_SetTask(1<<CFG_IdleTask_Update_Temperature, CFG_SCH_PRIO_0);
+      }
     } else {
       still_timeout_count = 0;
     }
