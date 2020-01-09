@@ -189,12 +189,12 @@ int main(void)
       HAL_UART_Transmit(&huart1, (uint8_t*) prompt_moving, strlen(prompt_moving), 1000);
 
       if (still_timeout_count == 10) {
-    	motion_status = MAYBE_DEAD;
+        motion_status = MAYBE_DEAD;
         state = UNCONCIOUS;
       }
 
       if (motion_status == MAN_DOWN) {
-        state = FLY;
+        state = FALL;
       }
       else if (motion_status == MAN_FLY) {
         state = FALL;
@@ -204,6 +204,12 @@ int main(void)
     
     case UNCONCIOUS:
       HAL_UART_Transmit(&huart1, (uint8_t*) prompt_dead, strlen(prompt_dead), 1000);
+
+      still_timeout_count = 0;
+      if (motion_status == OK) {
+        state = NORMAL;
+      }
+
       break;
 
     case FALL:
@@ -215,18 +221,26 @@ int main(void)
       if ((axe_x_diff > 700 || axe_x_diff < -700 || axe_y_diff > 700 || axe_y_diff < -700) && trip_period < 500) {
         motion_status = TRIP_TO_HEAVEN; 
         HAL_UART_Transmit(&huart1, (uint8_t*) prompt_trip, strlen(prompt_trip), 1000);
-        
-        HAL_TIM_Base_Stop_IT(&htim16);
-        HAL_TIM_Base_Stop_IT(&htim17);
-
-        while(1);
       }
 
+      // Damn I'm dead.
+      if (still_timeout_count == 10) {
+        motion_status = MAYBE_DEAD;
+        state = UNCONCIOUS;
+      }
+
+      // shit I'm alive
+      if (motion_status == MAN_FLY) {
+        state = NORMAL;
+        still_timeout_count = 0;
+        trip_period = 0;
+      }
 
       break;
     
     case FLY:
       HAL_UART_Transmit(&huart1, (uint8_t*) prompt_up, strlen(prompt_up), 1000);
+      state = NORMAL;
       break;
 
     default:
