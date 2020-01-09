@@ -29,11 +29,15 @@
 #include "app_x-cube-mems1.h"
 #include "main.h"
 #include <stdio.h>
+#include "iks01a2_motion_sensors.h"
+
+extern IKS01A2_MOTION_SENSOR_Axes_t accelero_val;
 
 void MX_MEMS_Init(void)
 {
   /* USER CODE BEGIN SV */ 
-
+  IKS01A2_MOTION_SENSOR_Init(IKS01A2_LSM6DSL_0, MOTION_ACCELERO);
+  IKS01A2_MOTION_SENSOR_Enable(IKS01A2_LSM6DSL_0, MOTION_ACCELERO);
   /* USER CODE END SV */
 
   /* USER CODE BEGIN MEMS_Init_PreTreatment */
@@ -52,7 +56,7 @@ void MX_MEMS_Init(void)
 void MX_MEMS_Process(void)
 {
   /* USER CODE BEGIN MEMS_Process_PreTreatment */
-  
+  IKS01A2_MOTION_SENSOR_GetAxes(IKS01A2_LSM6DSL_0, MOTION_ACCELERO, &accelero_val);
   /* USER CODE END MEMS_Process_PreTreatment */
 
   /* USER CODE BEGIN MEMS_Process_PostTreatment */

@@ -36,9 +36,20 @@ MEMS/App/app_x-cube-mems1.o: ../MEMS/App/app_x-cube-mems1.c \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_ll_crs.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_rtc.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_rtc_ex.h \
+ ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_tim.h \
+ ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_tim_ex.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_uart.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_uart_ex.h \
- ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_ll_system.h
+ ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_ll_system.h \
+ ../Drivers/BSP/IKS01A2/iks01a2_motion_sensors.h \
+ ../MEMS/Target/iks01a2_conf.h ../Core/Inc/stm32wbxx_nucleo_bus.h \
+ ../Core/Inc/stm32wbxx_nucleo_conf.h ../Core/Inc/stm32wbxx_nucleo_errno.h \
+ ../Core/Inc/stm32wbxx_nucleo_errno.h \
+ ../Drivers/BSP/Components/Common/motion_sensor.h \
+ ../Drivers/BSP/Components/lsm6dsl/lsm6dsl.h \
+ ../Drivers/BSP/Components/lsm6dsl/lsm6dsl_reg.h \
+ ../Drivers/BSP/Components/lsm303agr/lsm303agr.h \
+ ../Drivers/BSP/Components/lsm303agr/lsm303agr_reg.h
 
 ../MEMS/App/app_x-cube-mems1.h:
 
@@ -116,8 +127,34 @@ MEMS/App/app_x-cube-mems1.o: ../MEMS/App/app_x-cube-mems1.c \
 
 ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_rtc_ex.h:
 
+../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_tim.h:
+
+../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_tim_ex.h:
+
 ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_uart.h:
 
 ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_uart_ex.h:
 
 ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_ll_system.h:
+
+../Drivers/BSP/IKS01A2/iks01a2_motion_sensors.h:
+
+../MEMS/Target/iks01a2_conf.h:
+
+../Core/Inc/stm32wbxx_nucleo_bus.h:
+
+../Core/Inc/stm32wbxx_nucleo_conf.h:
+
+../Core/Inc/stm32wbxx_nucleo_errno.h:
+
+../Core/Inc/stm32wbxx_nucleo_errno.h:
+
+../Drivers/BSP/Components/Common/motion_sensor.h:
+
+../Drivers/BSP/Components/lsm6dsl/lsm6dsl.h:
+
+../Drivers/BSP/Components/lsm6dsl/lsm6dsl_reg.h:
+
+../Drivers/BSP/Components/lsm303agr/lsm303agr.h:
+
+../Drivers/BSP/Components/lsm303agr/lsm303agr_reg.h:

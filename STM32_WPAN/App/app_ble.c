@@ -245,7 +245,7 @@ uint8_t manuf_data[14] = {
     0x01/*SKD version */,
     CFG_DEV_ID_P2P_SERVER1 /* STM32WB - P2P Server 1*/,
     0x00 /* GROUP A Feature  */, 
-    0x04 /* GROUP A Feature */,
+    0x00 /* GROUP A Feature */,
     0x00 /* GROUP B Feature */,
     0x00 /* GROUP B Feature */,
     0x00, /* BLE MAC start -MSB */

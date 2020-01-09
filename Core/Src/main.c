@@ -27,6 +27,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stm32_seq.h"
+#include "iks01a2_motion_sensors.h"
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -36,20 +38,70 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define STILL_TIMEOUT 10
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+uint8_t is_moving(int32_t* x, int32_t* y, int32_t* z);
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 
 RTC_HandleTypeDef hrtc;
 
+TIM_HandleTypeDef htim16;
+TIM_HandleTypeDef htim17;
+
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
+IKS01A2_MOTION_SENSOR_Axes_t accelero_val = {0, 0, 0};
+
+typedef enum {
+	NORMAL = 0x00,
+	UNCONCIOUS,
+  FALL,
+  FLY,
+  TRIP,
+	TEST_STATE = 0x44
+} motion_state_t;
+
+typedef enum {
+	OK = 0x00,
+	MAYBE_DEAD = 0x0008,
+	MAN_DOWN = 0x0080,
+	MAN_FLY = 0x0081,
+	TRIP_TO_HEAVEN = 0x00FF,
+	TEST_STATUS = 0x44
+} code_status;
+
+
+volatile uint8_t still_timeout_count = 0;
+motion_state_t state = NORMAL;
+volatile code_status motion_status = OK;
+
+volatile uint8_t moving = 0;
+volatile uint16_t trip_period = 0;
+
+volatile int32_t old_axe_x = 0;
+volatile int32_t old_axe_y = 0;
+volatile int32_t old_axe_z = 0;
+
+// diff axe
+volatile int32_t axe_z_diff = 0;
+volatile int32_t axe_x_diff = 0;
+volatile int32_t axe_y_diff = 0;
+
+uint8_t run_this_once = 1;
+
+// prompt
+uint8_t prompt_moving[] = "I like to move it!\r\n";
+uint8_t prompt_dead[] = "Maybe I'm dead bro.\r\n";
+uint8_t prompt_fall[] = "Goodbye, I'm fall.\r\n";
+uint8_t prompt_up[] = "I believe I can fly.\r\n";
+uint8_t prompt_trip[] = "Dang I tripped.\r\n";
 
 /* USER CODE END PV */
 
@@ -59,6 +111,8 @@ static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_RF_Init(void);
 static void MX_RTC_Init(void);
+static void MX_TIM16_Init(void);
+static void MX_TIM17_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -96,17 +150,20 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
+  MX_TIM16_Init();
+  MX_TIM17_Init();
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   MX_RF_Init();
   MX_RTC_Init();
-  MX_MEMS_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
 
   /* Init code for STM32_WPAN */  
   APPE_Init();
+
+  MX_MEMS_Init();
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -115,8 +172,81 @@ int main(void)
     UTIL_SEQ_Run(UTIL_SEQ_DEFAULT);
     /* USER CODE END WHILE */
 
-  MX_MEMS_Process();
+    MX_MEMS_Process();
     /* USER CODE BEGIN 3 */
+
+    if (run_this_once) {
+      HAL_TIM_Base_Start_IT(&htim16);
+      HAL_TIM_Base_Start_IT(&htim17);
+      run_this_once = 0;
+    }
+
+
+    /* STATE SWITCHING ------------------------------------------------------ */
+    switch (state)
+    {
+    case NORMAL:
+      HAL_UART_Transmit(&huart1, (uint8_t*) prompt_moving, strlen(prompt_moving), 1000);
+
+      if (still_timeout_count == 10) {
+        motion_status = MAYBE_DEAD;
+        state = UNCONCIOUS;
+      }
+
+      if (motion_status == MAN_DOWN) {
+        state = FALL;
+      }
+      else if (motion_status == MAN_FLY) {
+        state = FALL;
+      }
+
+      break;
+    
+    case UNCONCIOUS:
+      HAL_UART_Transmit(&huart1, (uint8_t*) prompt_dead, strlen(prompt_dead), 1000);
+
+      still_timeout_count = 0;
+      if (motion_status == OK) {
+        state = NORMAL;
+      }
+
+      break;
+
+    case FALL:
+      HAL_UART_Transmit(&huart1, (uint8_t*) prompt_fall, strlen(prompt_fall), 1000);
+
+      axe_x_diff = accelero_val.x - old_axe_x;
+      axe_y_diff = accelero_val.y - old_axe_y;
+
+      if ((axe_x_diff > 700 || axe_x_diff < -700 || axe_y_diff > 700 || axe_y_diff < -700) && trip_period < 500) {
+        motion_status = TRIP_TO_HEAVEN; 
+        HAL_UART_Transmit(&huart1, (uint8_t*) prompt_trip, strlen(prompt_trip), 1000);
+      }
+
+      // Damn I'm dead.
+      if (still_timeout_count == 10) {
+        motion_status = MAYBE_DEAD;
+        state = UNCONCIOUS;
+      }
+
+      // shit I'm alive
+      if (motion_status == MAN_FLY) {
+        state = NORMAL;
+        still_timeout_count = 0;
+        trip_period = 0;
+      }
+
+      break;
+    
+    case FLY:
+      HAL_UART_Transmit(&huart1, (uint8_t*) prompt_up, strlen(prompt_up), 1000);
+      state = NORMAL;
+      break;
+
+    default:
+      break;
+    }
+
   }
   /* USER CODE END 3 */
 }
@@ -246,6 +376,70 @@ static void MX_RTC_Init(void)
 }
 
 /**
+  * @brief TIM16 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM16_Init(void)
+{
+
+  /* USER CODE BEGIN TIM16_Init 0 */
+
+  /* USER CODE END TIM16_Init 0 */
+
+  /* USER CODE BEGIN TIM16_Init 1 */
+
+  /* USER CODE END TIM16_Init 1 */
+  htim16.Instance = TIM16;
+  htim16.Init.Prescaler = 16001;
+  htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim16.Init.Period = 2001;
+  htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim16.Init.RepetitionCounter = 0;
+  htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim16) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM16_Init 2 */
+
+  /* USER CODE END TIM16_Init 2 */
+
+}
+
+/**
+  * @brief TIM17 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM17_Init(void)
+{
+
+  /* USER CODE BEGIN TIM17_Init 0 */
+
+  /* USER CODE END TIM17_Init 0 */
+
+  /* USER CODE BEGIN TIM17_Init 1 */
+
+  /* USER CODE END TIM17_Init 1 */
+  htim17.Instance = TIM17;
+  htim17.Init.Prescaler = 161;
+  htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim17.Init.Period = 2001;
+  htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim17.Init.RepetitionCounter = 0;
+  htim17.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim17) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM17_Init 2 */
+
+  /* USER CODE END TIM17_Init 2 */
+
+}
+
+/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -345,6 +539,64 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+/* ISR ---------------------------------------------------------------------- */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) 
+{
+  if (htim == &htim16) {
+    
+    if (!is_moving(&old_axe_x, &old_axe_y, &old_axe_z)) {
+      still_timeout_count++;
+    } else {
+      still_timeout_count = 0;
+    }
+
+    old_axe_x = accelero_val.x;
+    old_axe_y = accelero_val.y;
+    old_axe_z = accelero_val.z;
+
+  }
+
+
+  else if (htim == &htim17) {
+    axe_z_diff = accelero_val.z - old_axe_z;
+    if (axe_z_diff > 700) {
+      motion_status = MAN_DOWN;
+    }
+    else if (axe_z_diff < -700) {
+      motion_status = MAN_FLY;
+    }
+
+    if (motion_status == MAN_DOWN) {
+      trip_period += 10;
+    }
+  }
+
+}
+
+
+/* USER DEFINED ------------------------------------------------------------- */
+code_status is_moving(int32_t* x, int32_t* y, int32_t* z)
+{
+  uint8_t is_really_moving = 0;
+
+  if (accelero_val.x - *x > 20 || accelero_val.x - *x < -20) {
+    is_really_moving = 1;
+  }
+  else if (accelero_val.y - *y > 20 || accelero_val.y - *y < -20) {
+    is_really_moving = 1;
+  }
+  else if (accelero_val.z - *z > 20 || accelero_val.z - *z < -20) {
+    is_really_moving = 1;
+  }
+
+  if (is_really_moving) {
+    motion_status = OK;
+    return 1;
+  }
+
+  return 0;
+}
 
 /* USER CODE END 4 */
 
