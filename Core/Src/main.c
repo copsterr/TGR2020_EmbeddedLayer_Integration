@@ -73,7 +73,7 @@ typedef enum {
 	MAYBE_DEAD = 0x0008,
 	MAN_DOWN = 0x0080,
 	MAN_FLY = 0x0081,
-	TRIP_TO_HEAVEN = 0xFF,
+	TRIP_TO_HEAVEN = 0x00FF,
 	TEST_STATUS = 0x44
 } code_status;
 
@@ -83,6 +83,7 @@ motion_state_t state = NORMAL;
 volatile code_status motion_status = OK;
 
 volatile uint8_t moving = 0;
+volatile uint16_t trip_period = 0;
 
 volatile int32_t old_axe_x = 0;
 volatile int32_t old_axe_y = 0;
@@ -164,10 +165,6 @@ int main(void)
 
   MX_MEMS_Init();
 
-  // start timer16
-  // HAL_TIM_Base_Start_IT(&htim16);
-  // HAL_TIM_Base_Start_IT(&htim17);
-
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -215,7 +212,7 @@ int main(void)
       axe_x_diff = accelero_val.x - old_axe_x;
       axe_y_diff = accelero_val.y - old_axe_y;
 
-      if (axe_x_diff > 700 || axe_x_diff < -700 || axe_y_diff > 700 || axe_y_diff < -700) {
+      if ((axe_x_diff > 700 || axe_x_diff < -700 || axe_y_diff > 700 || axe_y_diff < -700) && trip_period < 500) {
         motion_status = TRIP_TO_HEAVEN; 
         HAL_UART_Transmit(&huart1, (uint8_t*) prompt_trip, strlen(prompt_trip), 1000);
         
@@ -554,6 +551,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     }
     else if (axe_z_diff < -700) {
       motion_status = MAN_FLY;
+    }
+
+    if (motion_status == MAN_DOWN) {
+      trip_period += 10;
     }
   }
 
