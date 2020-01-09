@@ -197,6 +197,7 @@ int main(void)
       still_timeout_count = 0;
       if (motion_status == OK) {
         state = NORMAL;
+        UTIL_SEQ_SetTask(1<<CFG_IdleTask_Update_Temperature, CFG_SCH_PRIO_0);
       }
 
       break;

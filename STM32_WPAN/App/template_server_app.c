@@ -180,6 +180,11 @@ static void TEMPLATE_Send_Notification_Task(void)
 
   switch (state)
   {
+  case NORMAL:
+    value[2] = (uint8_t) (0x00);
+    value[3] = (uint8_t) (0x11);
+    break;
+
   case UNCONCIOUS:
     value[2] = (uint8_t) (0x00);
     value[3] = (uint8_t) (0x08);
